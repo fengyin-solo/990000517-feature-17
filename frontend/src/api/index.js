@@ -37,7 +37,15 @@ export const authApi = {
 export const boardApi = {
   list: () => api.get('/boards'),
   create: (name, description) => api.post('/boards', { name, description }),
-  delete: (id) => api.delete(`/boards/${id}`)
+  delete: (id) => api.delete(`/boards/${id}`),
+  exportUrl: (id) => `/api/boards/${id}/export`
+}
+
+// Exports
+export const exportApi = {
+  // Download the hierarchical summary file for a board (with JWT auth header)
+  downloadBoard: (id) => api.get(`/boards/${id}/export`, { responseType: 'blob' }),
+  overview: () => api.get('/exports')
 }
 
 // Columns

@@ -23,8 +23,8 @@ function seed() {
   const boardId = boardResult.lastInsertRowid;
   console.log('Created board "My Project" (id:', boardId, ')');
 
-  // Create columns
-  const insertColumn = db.prepare('INSERT INTO columns (board_id, name, position) VALUES (?, ?, ?)');
+  // Create columns (the first three are the board's default columns)
+  const insertColumn = db.prepare('INSERT INTO columns (board_id, name, position, is_default) VALUES (?, ?, ?, 1)');
   const todoResult = insertColumn.run(boardId, 'To Do', 0);
   const inProgressResult = insertColumn.run(boardId, 'In Progress', 1);
   const doneResult = insertColumn.run(boardId, 'Done', 2);

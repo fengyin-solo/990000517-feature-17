@@ -19,6 +19,9 @@ Thumbs.db
 *.log
 logs/
 
+# Generated board export files
+backend/data/exports/
+
 # Docker
 docker-data/
 

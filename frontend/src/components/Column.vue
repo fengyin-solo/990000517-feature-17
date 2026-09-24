@@ -3,6 +3,9 @@
     <div class="column-header">
       <div v-if="!isEditing" class="column-title" @dblclick="startEditing">
         <h3>{{ column.name }}</h3>
+        <el-tag v-if="column.source === 'default' || column.is_default" size="small" type="success" effect="plain">
+          Default
+        </el-tag>
         <el-tag size="small" round>{{ cards.length }}</el-tag>
       </div>
       <div v-else class="column-edit">

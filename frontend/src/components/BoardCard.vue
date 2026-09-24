@@ -27,6 +27,9 @@
       <el-text type="info" size="small">
         Created {{ formatDate(board.created_at) }}
       </el-text>
+      <el-text v-if="board.last_updated_at" type="info" size="small">
+        · Updated {{ formatDate(board.last_updated_at) }}
+      </el-text>
     </div>
   </el-card>
 </template>

@@ -6,9 +6,11 @@ const authRoutes = require('./routes/auth');
 const boardRoutes = require('./routes/boards');
 const columnRoutes = require('./routes/columns');
 const cardRoutes = require('./routes/cards');
+const exportRoutes = require('./routes/exports');
+const { cleanupStaleTempFiles } = require('./services/exportService');
 
 const app = express();
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(cors());
@@ -16,6 +18,9 @@ app.use(express.json());
 
 // Initialize database
 initDb();
+
+// Remove export temp files abandoned by an earlier crashed process
+cleanupStaleTempFiles();
 
 // Health check (before auth-protected routes)
 app.get('/api/health', (req, res) => {
@@ -25,6 +30,7 @@ app.get('/api/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/boards', boardRoutes);
+app.use('/api/exports', exportRoutes);
 app.use('/api', columnRoutes);
 app.use('/api', cardRoutes);
 

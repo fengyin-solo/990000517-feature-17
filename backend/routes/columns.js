@@ -1,10 +1,17 @@
 const express = require('express');
 const { getDb } = require('../db/init');
 const { authMiddleware } = require('../middleware/auth');
+const { invalidateBoardExport } = require('../services/exportService');
 
 const router = express.Router();
 
 router.use(authMiddleware);
+
+// Additive column metadata: keep all existing fields and expose whether the
+// column was created with the board (default) or added by the user (custom).
+function decorateColumn(column) {
+  return { ...column, is_default: !!column.is_default, source: column.is_default ? 'default' : 'custom' };
+}
 
 // Helper: verify that the board belongs to the user
 function verifyBoardOwnership(db, boardId, userId) {
@@ -22,15 +29,15 @@ router.get('/boards/:boardId/columns', (req, res) => {
     }
 
     const columns = db.prepare(`
-      SELECT col.*, 
+      SELECT col.*,
         (SELECT COUNT(*) FROM cards WHERE column_id = col.id) AS card_count
-      FROM columns col 
-      WHERE col.board_id = ? 
+      FROM columns col
+      WHERE col.board_id = ?
       ORDER BY col.position ASC
     `).all(req.params.boardId);
 
     db.close();
-    res.json(columns);
+    res.json(columns.map(decorateColumn));
   } catch (err) {
     db.close();
     res.status(500).json({ error: 'Failed to fetch columns' });
@@ -64,7 +71,10 @@ router.post('/boards/:boardId/columns', (req, res) => {
 
     const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(result.lastInsertRowid);
     db.close();
-    res.status(201).json(column);
+
+    invalidateBoardExport(Number(req.params.boardId));
+
+    res.status(201).json(decorateColumn(column));
   } catch (err) {
     db.close();
     res.status(500).json({ error: 'Failed to create column' });
@@ -78,8 +88,8 @@ router.put('/columns/:id', (req, res) => {
 
   try {
     const column = db.prepare(`
-      SELECT col.*, b.user_id FROM columns col 
-      JOIN boards b ON col.board_id = b.id 
+      SELECT col.*, b.user_id FROM columns col
+      JOIN boards b ON col.board_id = b.id
       WHERE col.id = ?
     `).get(req.params.id);
 
@@ -104,12 +114,12 @@ router.put('/columns/:id', (req, res) => {
       if (oldPos !== newPos) {
         if (newPos > oldPos) {
           db.prepare(`
-            UPDATE columns SET position = position - 1 
+            UPDATE columns SET position = position - 1
             WHERE board_id = ? AND position > ? AND position <= ?
           `).run(column.board_id, oldPos, newPos);
         } else {
           db.prepare(`
-            UPDATE columns SET position = position + 1 
+            UPDATE columns SET position = position + 1
             WHERE board_id = ? AND position >= ? AND position < ?
           `).run(column.board_id, newPos, oldPos);
         }
@@ -125,7 +135,10 @@ router.put('/columns/:id', (req, res) => {
 
     const updated = db.prepare('SELECT * FROM columns WHERE id = ?').get(req.params.id);
     db.close();
-    res.json(updated);
+
+    invalidateBoardExport(column.board_id);
+
+    res.json(decorateColumn(updated));
   } catch (err) {
     db.close();
     res.status(500).json({ error: 'Failed to update column' });
@@ -137,8 +150,8 @@ router.delete('/columns/:id', (req, res) => {
   const db = getDb();
   try {
     const column = db.prepare(`
-      SELECT col.*, b.user_id FROM columns col 
-      JOIN boards b ON col.board_id = b.id 
+      SELECT col.*, b.user_id FROM columns col
+      JOIN boards b ON col.board_id = b.id
       WHERE col.id = ?
     `).get(req.params.id);
 
@@ -153,11 +166,14 @@ router.delete('/columns/:id', (req, res) => {
 
     // Reorder remaining columns
     db.prepare(`
-      UPDATE columns SET position = position - 1 
+      UPDATE columns SET position = position - 1
       WHERE board_id = ? AND position > ?
     `).run(column.board_id, column.position);
 
     db.close();
+
+    invalidateBoardExport(column.board_id);
+
     res.json({ message: 'Column deleted' });
   } catch (err) {
     db.close();

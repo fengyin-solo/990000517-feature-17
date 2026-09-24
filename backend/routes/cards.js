@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb } = require('../db/init');
 const { authMiddleware } = require('../middleware/auth');
+const { invalidateBoardExport } = require('../services/exportService');
 
 const router = express.Router();
 
@@ -93,6 +94,9 @@ router.post('/columns/:columnId/cards', (req, res) => {
 
     const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(result.lastInsertRowid);
     db.close();
+
+    invalidateBoardExport(Number(col.board_id));
+
     res.status(201).json(card);
   } catch (err) {
     db.close();
@@ -129,6 +133,9 @@ router.put('/cards/:id', (req, res) => {
 
     const updated = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id);
     db.close();
+
+    invalidateBoardExport(card.board_id);
+
     res.json(updated);
   } catch (err) {
     db.close();
@@ -155,6 +162,9 @@ router.delete('/cards/:id', (req, res) => {
     `).run(card.column_id, card.position);
 
     db.close();
+
+    invalidateBoardExport(card.board_id);
+
     res.json({ message: 'Card deleted' });
   } catch (err) {
     db.close();
@@ -216,6 +226,9 @@ router.put('/cards/:id/move', (req, res) => {
 
     const updated = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id);
     db.close();
+
+    invalidateBoardExport(card.board_id);
+
     res.json(updated);
   } catch (err) {
     db.close();

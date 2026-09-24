@@ -76,12 +76,13 @@ The seed script creates a demo user with a sample board "My Project" containing 
 - `POST /api/auth/login` - Login (returns JWT)
 
 ### Boards
-- `GET /api/boards` - List user's boards
+- `GET /api/boards` - List user's boards (includes `column_count`, `card_count`, `last_updated_at`)
 - `POST /api/boards` - Create board
 - `DELETE /api/boards/:id` - Delete board
+- `GET /api/boards/:id/export` - Download a hierarchical JSON summary of the board, its columns and cards
 
 ### Columns
-- `GET /api/boards/:boardId/columns` - Get columns for a board
+- `GET /api/boards/:boardId/columns` - Get columns for a board (with card counts, `is_default` flag and `source`: `default`/`custom`)
 - `POST /api/boards/:boardId/columns` - Add column
 - `PUT /api/columns/:id` - Update column (rename/reorder)
 - `DELETE /api/columns/:id` - Delete column
@@ -92,6 +93,60 @@ The seed script creates a demo user with a sample board "My Project" containing 
 - `PUT /api/cards/:id` - Update card
 - `DELETE /api/cards/:id` - Delete card
 - `PUT /api/cards/:id/move` - Move card to another column
+
+### Exports
+- `GET /api/exports` - Overview of all boards and their downloadable summary files
+
+## Board summary export
+
+`GET /api/boards/:id/export` returns a downloadable JSON file containing a
+hierarchical snapshot of a board:
+
+```json
+{
+  "type": "board_summary",
+  "exported_at": "2026-09-24T09:40:01.790Z",
+  "board": {
+    "id": 1,
+    "name": "My Project",
+    "description": "sample",
+    "created_at": "2026-09-24T09:40:01.000Z",
+    "last_updated_at": "2026-09-24T09:40:01.000Z"
+  },
+  "totals": { "column_count": 4, "card_count": 2 },
+  "columns": [
+    {
+      "id": 1,
+      "name": "To Do",
+      "position": 0,
+      "source": "default",
+      "is_default": true,
+      "card_count": 1,
+      "cards": [ { "id": 1, "title": "Task 1", "priority": "high", "position": 0 } ]
+    }
+  ]
+}
+```
+
+- Columns shipped with every new board (`To Do`, `In Progress`, `Done`) are
+  marked `"source": "default"`; columns added by users are `"source": "custom"`.
+- Files are written atomically (temp file + rename) into
+  `backend/data/exports/` as `board-<id>-summary-<timestamp>.json`. Re-exporting
+  replaces the previous file, so each board has at most one summary on disk;
+  concurrent exports of the same board are coalesced.
+- Any create/update/delete/move on a board's columns or cards (or deleting the
+  board itself) removes the stale summary, and `GET /api/exports` reconciles
+  the directory against live data — contradictory, corrupt, duplicate or
+  orphaned files are deleted automatically.
+- An interrupted download cannot corrupt or duplicate the stored file, and an
+  empty board exports a valid summary with zero counts.
+
+### Tests
+
+```bash
+cd backend
+npm test         # boots the API against an isolated temp database
+```
 
 ## Features
 
