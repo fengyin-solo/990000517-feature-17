@@ -24,10 +24,10 @@ function seed() {
   console.log('Created board "My Project" (id:', boardId, ')');
 
   // Create columns
-  const insertColumn = db.prepare('INSERT INTO columns (board_id, name, position) VALUES (?, ?, ?)');
-  const todoResult = insertColumn.run(boardId, 'To Do', 0);
-  const inProgressResult = insertColumn.run(boardId, 'In Progress', 1);
-  const doneResult = insertColumn.run(boardId, 'Done', 2);
+  const insertColumn = db.prepare('INSERT INTO columns (board_id, name, position, is_default) VALUES (?, ?, ?, ?)');
+  const todoResult = insertColumn.run(boardId, 'To Do', 0, 1);
+  const inProgressResult = insertColumn.run(boardId, 'In Progress', 1, 1);
+  const doneResult = insertColumn.run(boardId, 'Done', 2, 1);
 
   const todoId = todoResult.lastInsertRowid;
   const inProgressId = inProgressResult.lastInsertRowid;

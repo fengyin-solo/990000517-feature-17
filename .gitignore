@@ -29,6 +29,9 @@ docs/
 # Dependencies
 node_modules/
 
+# Generated board export files
+backend/data/exports/
+
 # Trae
 .trae/
 

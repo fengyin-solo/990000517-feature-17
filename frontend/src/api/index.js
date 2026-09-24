@@ -37,7 +37,8 @@ export const authApi = {
 export const boardApi = {
   list: () => api.get('/boards'),
   create: (name, description) => api.post('/boards', { name, description }),
-  delete: (id) => api.delete(`/boards/${id}`)
+  delete: (id) => api.delete(`/boards/${id}`),
+  export: (id) => api.get(`/boards/${id}/export`, { responseType: 'blob' })
 }
 
 // Columns

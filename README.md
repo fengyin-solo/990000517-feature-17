@@ -79,6 +79,20 @@ The seed script creates a demo user with a sample board "My Project" containing 
 - `GET /api/boards` - List user's boards
 - `POST /api/boards` - Create board
 - `DELETE /api/boards/:id` - Delete board
+- `GET /api/boards/:id/export` - Download the hierarchical board summary (JSON file)
+
+### Board export
+
+Reading boards, columns, or cards refreshes a downloadable hierarchical summary
+file per board under `backend/data/exports/` (`board-<id>-summary.json`). The
+summary nests columns and cards under the board, marks each column's origin
+(`is_default` / `source: "default" | "custom"` for the auto-created To Do /
+In Progress / Done trio), and records `last_updated_at` (latest entity
+timestamp) plus `generated_at`. Files are written atomically (tmp + rename), so
+interrupted downloads never leave partial or duplicate files, and deleting a
+board removes its summary. `GET /api/boards/:id/export` always regenerates the
+file from current data before downloading, so re-exports match the board
+overview counts.
 
 ### Columns
 - `GET /api/boards/:boardId/columns` - Get columns for a board

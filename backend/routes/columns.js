@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb } = require('../db/init');
 const { authMiddleware } = require('../middleware/auth');
+const { refreshBoardExport } = require('../services/exporter');
 
 const router = express.Router();
 
@@ -30,6 +31,7 @@ router.get('/boards/:boardId/columns', (req, res) => {
     `).all(req.params.boardId);
 
     db.close();
+    refreshBoardExport(req.params.boardId);
     res.json(columns);
   } catch (err) {
     db.close();
@@ -64,6 +66,7 @@ router.post('/boards/:boardId/columns', (req, res) => {
 
     const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(result.lastInsertRowid);
     db.close();
+    refreshBoardExport(req.params.boardId);
     res.status(201).json(column);
   } catch (err) {
     db.close();
@@ -125,6 +128,7 @@ router.put('/columns/:id', (req, res) => {
 
     const updated = db.prepare('SELECT * FROM columns WHERE id = ?').get(req.params.id);
     db.close();
+    refreshBoardExport(column.board_id);
     res.json(updated);
   } catch (err) {
     db.close();
@@ -158,6 +162,7 @@ router.delete('/columns/:id', (req, res) => {
     `).run(column.board_id, column.position);
 
     db.close();
+    refreshBoardExport(column.board_id);
     res.json({ message: 'Column deleted' });
   } catch (err) {
     db.close();

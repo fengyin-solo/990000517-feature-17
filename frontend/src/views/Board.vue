@@ -6,6 +6,9 @@
         <h2 v-if="boardStore.currentBoard">{{ boardStore.currentBoard.name }}</h2>
       </div>
       <div class="board-actions">
+        <el-button :icon="Download" :loading="exporting" @click="handleExport">
+          Export
+        </el-button>
         <el-button type="primary" :icon="Plus" @click="showAddColumn = true">
           Add Column
         </el-button>
@@ -77,10 +80,10 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, ArrowLeft, Loading } from '@element-plus/icons-vue'
+import { Plus, ArrowLeft, Loading, Download } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import { useBoardStore } from '../stores/board.js'
-import { columnApi } from '../api/index.js'
+import { columnApi, boardApi } from '../api/index.js'
 import Column from '../components/Column.vue'
 import AddCardForm from '../components/AddCardForm.vue'
 import CardDetail from '../components/CardDetail.vue'
@@ -95,6 +98,7 @@ const showAddCard = ref(false)
 const addingToColumnId = ref(null)
 const showCardDetail = ref(false)
 const selectedCard = ref(null)
+const exporting = ref(false)
 
 onMounted(async () => {
   const boardId = parseInt(route.params.id)
@@ -132,6 +136,25 @@ async function handleAddColumn() {
     ElMessage.success('Column added')
   } catch (err) {
     ElMessage.error('Failed to add column')
+  }
+}
+
+async function handleExport() {
+  if (!boardStore.currentBoard) return
+  exporting.value = true
+  try {
+    const res = await boardApi.export(boardStore.currentBoard.id)
+    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `board-${boardStore.currentBoard.id}-summary.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('Board exported')
+  } catch (err) {
+    ElMessage.error('Failed to export board')
+  } finally {
+    exporting.value = false
   }
 }
 
